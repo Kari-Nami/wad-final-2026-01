@@ -96,23 +96,27 @@ export default function DashboardPage() {
                 ? "Create courses, update their details and status, and inspect each enrollment roster."
                 : "The Student catalog, search, and enrollment tools will be connected in the next stage."}
             </p>
-            {user.role === "Teacher" && (
-              <Button
-                variant="contained"
-                endIcon={<ArrowForwardRoundedIcon />}
-                onClick={() => navigate("/teacher/courses")}
-                sx={{
-                  mt: 3,
-                  borderRadius: 2.5,
-                  textTransform: "none",
-                  fontWeight: 750,
-                  bgcolor: "#0f172a",
-                  "&:hover": { bgcolor: "#1e293b" },
-                }}
-              >
-                Manage courses
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              endIcon={<ArrowForwardRoundedIcon />}
+              onClick={() =>
+                navigate(
+                  user.role === "Teacher"
+                    ? "/teacher/courses"
+                    : "/student/courses",
+                )
+              }
+              sx={{
+                mt: 3,
+                borderRadius: 2.5,
+                textTransform: "none",
+                fontWeight: 750,
+                bgcolor: "#0f172a",
+                "&:hover": { bgcolor: "#1e293b" },
+              }}
+            >
+              {user.role === "Teacher" ? "Manage courses" : "Browse courses"}
+            </Button>
           </article>
         </section>
       </main>

@@ -1,8 +1,12 @@
 // src/app/api/course/route.js
 
 import { getAuthenticatedUser, userHasRole } from "@/lib/auth";
-import { serializeCourse, validateCourseInput } from "@/lib/course";
-import { COLLECTIONS, USER_ROLES } from "@/lib/constant";
+import {
+  escapeRegExp,
+  serializeCourse,
+  validateCourseInput,
+} from "@/lib/course";
+import { COLLECTIONS, COURSE_STATUSES, USER_ROLES } from "@/lib/constant";
 import { getClientPromise } from "@/lib/mongodb";
 import {
   errorResponse,
@@ -20,13 +24,73 @@ export async function GET(request) {
   const user = getAuthenticatedUser(request);
 
   if (!user) return errorResponse("Unauthorized Request", 401);
-  if (!userHasRole(user, USER_ROLES.TEACHER)) {
-    return errorResponse("Teacher access required", 403);
-  }
 
   try {
     const client = await getClientPromise();
     const db = client.db(process.env.DB_NAME);
+
+    if (userHasRole(user, USER_ROLES.STUDENT)) {
+      const search = request.nextUrl.searchParams.get("search")?.trim() || "";
+      const enrolledOnly =
+        request.nextUrl.searchParams.get("enrolled") === "true";
+      const studentId = new ObjectId(user.id);
+      const match = {
+        status: { $ne: COURSE_STATUSES.CANCEL },
+        ...(enrolledOnly && { enrolledStudentIds: studentId }),
+      };
+      const pipeline = [
+        { $match: match },
+        {
+          $lookup: {
+            from: COLLECTIONS.USERS,
+            localField: "teacherId",
+            foreignField: "_id",
+            as: "teacher",
+          },
+        },
+        { $unwind: "$teacher" },
+      ];
+
+      if (search) {
+        const searchPattern = escapeRegExp(search);
+        pipeline.push({
+          $match: {
+            $or: [
+              { name: { $regex: searchPattern, $options: "i" } },
+              {
+                "teacher.username": {
+                  $regex: searchPattern,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+        });
+      }
+
+      pipeline.push({ $sort: { createdAt: -1 } });
+      const courses = await db
+        .collection(COLLECTIONS.COURSES)
+        .aggregate(pipeline)
+        .toArray();
+
+      return successResponse(
+        {
+          courses: courses.map((course) =>
+            serializeCourse(course, {
+              teacher: course.teacher,
+              studentId: user.id,
+            }),
+          ),
+        },
+        200,
+      );
+    }
+
+    if (!userHasRole(user, USER_ROLES.TEACHER)) {
+      return errorResponse("Invalid user role", 403);
+    }
+
     const courses = await db
       .collection(COLLECTIONS.COURSES)
       .find({ teacherId: new ObjectId(user.id) })

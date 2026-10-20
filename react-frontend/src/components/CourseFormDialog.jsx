@@ -98,7 +98,7 @@ export default function CourseFormDialog({ course, onClose, onSaved }) {
               value={form.name}
               onChange={updateField}
               disabled={isSaving}
-              inputProps={{ maxLength: 120 }}
+              slotProps={{ htmlInput: { maxLength: 120 } }}
             />
             <div className="grid gap-5 sm:grid-cols-2">
               <TextField
@@ -110,7 +110,7 @@ export default function CourseFormDialog({ course, onClose, onSaved }) {
                 value={form.durationDays}
                 onChange={updateField}
                 disabled={isSaving}
-                inputProps={{ min: 1, step: 1 }}
+                slotProps={{ htmlInput: { min: 1, step: 1 } }}
               />
               <TextField
                 required
@@ -121,7 +121,7 @@ export default function CourseFormDialog({ course, onClose, onSaved }) {
                 value={form.maxStudents}
                 onChange={updateField}
                 disabled={isSaving}
-                inputProps={{ min: 1, step: 1 }}
+                slotProps={{ htmlInput: { min: 1, step: 1 } }}
               />
             </div>
             <TextField
@@ -144,7 +144,7 @@ export default function CourseFormDialog({ course, onClose, onSaved }) {
                 value={form.price}
                 onChange={updateField}
                 disabled={isSaving}
-                inputProps={{ min: 0, step: 0.01 }}
+                slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
               />
               <TextField
                 select

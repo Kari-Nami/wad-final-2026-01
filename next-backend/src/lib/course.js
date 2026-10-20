@@ -62,7 +62,7 @@ export function validateCourseInput(data) {
   };
 }
 
-export function serializeCourse(course, enrolledStudents) {
+export function serializeCourse(course, options = {}) {
   const output = {
     id: course._id.toString(),
     name: course.name,
@@ -77,9 +77,32 @@ export function serializeCourse(course, enrolledStudents) {
     updatedAt: course.updatedAt,
   };
 
-  if (enrolledStudents) {
-    output.enrolledStudents = enrolledStudents;
+  if (options.enrolledStudents) {
+    output.enrolledStudents = options.enrolledStudents;
+  }
+
+  if (options.teacher) {
+    output.teacher = {
+      id: options.teacher._id.toString(),
+      username: options.teacher.username,
+    };
+  }
+
+  if (options.studentId) {
+    output.isEnrolled = Boolean(
+      course.enrolledStudentIds?.some(
+        (id) => id.toString() === options.studentId,
+      ),
+    );
+    output.seatsRemaining = Math.max(
+      course.maxStudents - output.enrolledCount,
+      0,
+    );
   }
 
   return output;
+}
+
+export function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

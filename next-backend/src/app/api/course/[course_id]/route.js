@@ -2,7 +2,7 @@
 
 import { getAuthenticatedUser, userHasRole } from "@/lib/auth";
 import { serializeCourse, validateCourseInput } from "@/lib/course";
-import { COLLECTIONS, USER_ROLES } from "@/lib/constant";
+import { COLLECTIONS, COURSE_STATUSES, USER_ROLES } from "@/lib/constant";
 import { getClientPromise } from "@/lib/mongodb";
 import {
   errorResponse,
@@ -33,8 +33,8 @@ async function getCourseId(params) {
 }
 
 export async function GET(request, { params }) {
-  const auth = getTeacher(request);
-  if (auth.error) return auth.error;
+  const user = getAuthenticatedUser(request);
+  if (!user) return errorResponse("Unauthorized Request", 401);
 
   const courseId = await getCourseId(params);
   if (!courseId) return errorResponse("Invalid course id", 400);
@@ -42,9 +42,40 @@ export async function GET(request, { params }) {
   try {
     const client = await getClientPromise();
     const db = client.db(process.env.DB_NAME);
+
+    if (userHasRole(user, USER_ROLES.STUDENT)) {
+      const course = await db.collection(COLLECTIONS.COURSES).findOne({
+        _id: courseId,
+        status: { $ne: COURSE_STATUSES.CANCEL },
+      });
+
+      if (!course) return errorResponse("Course not found", 404);
+
+      const teacher = await db.collection(COLLECTIONS.USERS).findOne(
+        { _id: course.teacherId },
+        { projection: { username: 1 } },
+      );
+
+      if (!teacher) return errorResponse("Course Teacher not found", 404);
+
+      return successResponse(
+        {
+          course: serializeCourse(course, {
+            teacher,
+            studentId: user.id,
+          }),
+        },
+        200,
+      );
+    }
+
+    if (!userHasRole(user, USER_ROLES.TEACHER)) {
+      return errorResponse("Invalid user role", 403);
+    }
+
     const course = await db.collection(COLLECTIONS.COURSES).findOne({
       _id: courseId,
-      teacherId: new ObjectId(auth.user.id),
+      teacherId: new ObjectId(user.id),
     });
 
     if (!course) return errorResponse("Course not found", 404);
@@ -67,7 +98,7 @@ export async function GET(request, { params }) {
     }));
 
     return successResponse(
-      { course: serializeCourse(course, enrolledStudents) },
+      { course: serializeCourse(course, { enrolledStudents }) },
       200,
     );
   } catch (error) {
