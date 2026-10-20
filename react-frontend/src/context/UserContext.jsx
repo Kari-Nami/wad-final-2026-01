@@ -1,19 +1,8 @@
 // src/context/UserContext.jsx
 
 import { useEffect, useRef, useState } from "react";
+import { apiRequest } from "../lib/api";
 import { UserContext } from "./userContext";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-async function readResponse(response) {
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.message || "The request could not be completed");
-  }
-
-  return data;
-}
 
 export function UserProvider({ children }) {
   const isInit = useRef(false);
@@ -28,16 +17,12 @@ export function UserProvider({ children }) {
 
     const loadSession = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/me`, {
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
+        const data = await apiRequest("/api/me");
+        setUser(data.user);
+      } catch (error) {
+        if (error.status !== 401) {
+          setAuthError("Unable to connect to the authentication service.");
         }
-      } catch {
-        setAuthError("Unable to connect to the authentication service.");
       } finally {
         setIsInitializing(false);
       }
@@ -51,13 +36,10 @@ export function UserProvider({ children }) {
     setAuthError("");
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const data = await apiRequest("/api/auth/login", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
       });
-      const data = await readResponse(response);
       setUser(data.user);
       return true;
     } catch (error) {
@@ -74,11 +56,9 @@ export function UserProvider({ children }) {
     setAuthError("");
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/logout`, {
+      await apiRequest("/api/auth/logout", {
         method: "POST",
-        credentials: "include",
       });
-      await readResponse(response);
       setUser(null);
       return true;
     } catch (error) {

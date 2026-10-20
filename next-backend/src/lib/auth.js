@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { USER_ROLES } from "./constant";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -36,4 +37,26 @@ export function verifyJWT(req) {
     console.log(error.message);
     return null;
   }
+}
+
+export function getAuthenticatedUser(request) {
+  const user = verifyJWT(request);
+
+  if (
+    !user?.id ||
+    !user?.username ||
+    !Object.values(USER_ROLES).includes(user.role)
+  ) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+  };
+}
+
+export function userHasRole(user, role) {
+  return Boolean(user && user.role === role);
 }
