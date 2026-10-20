@@ -141,9 +141,25 @@ export async function PUT(request, { params }) {
     }
 
     const updatedAt = new Date();
-    await db.collection(COLLECTIONS.COURSES).updateOne(filter, {
-      $set: { ...validation.value, updatedAt },
-    });
+    const updateResult = await db.collection(COLLECTIONS.COURSES).updateOne(
+      {
+        ...filter,
+        $expr: {
+          $lte: [
+            { $size: { $ifNull: ["$enrolledStudentIds", []] } },
+            validation.value.maxStudents,
+          ],
+        },
+      },
+      { $set: { ...validation.value, updatedAt } },
+    );
+
+    if (!updateResult.matchedCount) {
+      return errorResponse(
+        "Max Student cannot be lower than the current enrollment",
+        409,
+      );
+    }
 
     return successResponse(
       {
