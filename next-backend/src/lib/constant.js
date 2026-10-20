@@ -1,3 +1,20 @@
 export const X_HEADER_USER_ID = "x-user-id";
 export const X_HEADER_USER_NAME = "x-user-username";
 export const X_HEADER_USER_EMAIL = "x-user-email";
+export const X_HEADER_USER_ROLE = "x-user-role";
+
+export const USER_ROLES = Object.freeze({
+  STUDENT: "Student",
+  TEACHER: "Teacher",
+});
+
+export const COURSE_STATUSES = Object.freeze({
+  OPEN: "Open",
+  CLOSE: "Close",
+  CANCEL: "Cancel",
+});
+
+export const COLLECTIONS = Object.freeze({
+  USERS: "user",
+  COURSES: "course",
+});
